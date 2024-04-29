@@ -10,8 +10,8 @@ app = Flask(__name__, template_folder="templates")
 def index():
     if request.method == "POST":
         text = request.form["text"]
-        writer(parse(text)).save()
-        return send_file("overlay.pdf", as_attachment=True)
+        f = writer(parse(text)).save()
+        return send_file(f, as_attachment=True)
 
     return render_template("index.html")
 

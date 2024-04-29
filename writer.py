@@ -5,19 +5,29 @@ from pypdf import PdfReader, PdfWriter
 
 from math import floor
 import parser
+import os
 
 
 class writer:
     def __init__(self, user: parser.usuario):
         self.user = user
         self.w, self.h = A4
-        self.c = canvas.Canvas("overlay.pdf", pagesize=A4)
+        self.offset = 0
+
+        name = self.user.nome.split()
+        pdf_name = f"{name[0].lower()}_{name[-1].lower()}.pdf"
+        if os.name == "nt":
+            self.save_path = os.path.join(os.path.expanduser("~"), "Desktop/", pdf_name)
+        else:
+            self.save_path = pdf_name
+
+        self.c = canvas.Canvas(self.save_path, pagesize=A4)
 
     def write_dados_gerais(self):
         self.write_spaced(self.user.data, (452, 652))
         self.write_spaced(self.user.uf, (59, 623))
         self.write(self.user.municipio, (92, 624))
-        self.write_spaced(self.user.ibge, (482, 623), 15)
+        # self.write_spaced(self.user.ibge, (482, 623), 15)
         self.write(self.user.ubs, (62, 595))
         self.write_spaced(self.user.ubs_code, (343, 595))
         # skip data primeiros sintomas
@@ -28,8 +38,9 @@ class writer:
         # skip idade
         self.write_spaced(self.user.sexo[0], (232, 548))
         # skip gestante
-        self.write_spaced(self.user.raca, (551, 547))
-        self.write_spaced(self._find_esco(self.user.escolaridade), (553, 519))
+        self.write_spaced(self._code_raca(self.user.raca), (552, 548))
+        print(self.user.raca)
+        self.write_spaced(self._code_esco(self.user.escolaridade), (552, 519))
         self.write_spaced(self.user.n_sus, (54, 474), 11.7)
         self.write(self.user.nome_mae, (236, 474))
 
@@ -61,7 +72,7 @@ class writer:
                 zona = 9
         self.write_spaced(str(zona), (334, 354))
 
-    def _find_esco(self, esco: str) -> str:
+    def _code_esco(self, esco: str) -> str:
         esco = esco.lower()
         # remove acentos
         esco.replace("ã", "a").replace("é", "e").replace("ç", "c")
@@ -86,19 +97,33 @@ class writer:
             return "8"
         return "0"
 
+    def _code_raca(self, raca: str) -> str:
+        raca = raca.lower()
+        if "branca" in raca:
+            return "1"
+        if "preta" in raca:
+            return "2"
+        if "amarela" in raca:
+            return "3"
+        if "parda" in raca:
+            return "4"
+        if "indigena" in raca:
+            return "5"
+        return ""
+
     def write_spaced(
         self, to_write: str, coord: tuple[int, int], spacing: float = 14.5
     ):
         self.c.setFont("Times-Roman", 10)
         x, y = coord
-        for char in to_write.replace("/", ""):
-            self.c.drawString(x, y, char)
+        for char in to_write.replace("/", "").strip():
+            self.c.drawString(x, y + self.offset, char)
             x += spacing
 
     def write(self, to_write: str, coord: tuple[int, int]):
         self.c.setFont("Times-Roman", 10)
         x, y = coord
-        self.c.drawString(x, y, to_write)
+        self.c.drawString(x, y + self.offset, to_write.strip())
 
     def draw_grid(self):
         self.c.setStrokeColorRGB(0.1, 0.1, 0.1)
@@ -117,19 +142,28 @@ class writer:
         self.write_dados_gerais()
         self.write_notificacao_individual()
         self.write_dados_residencia()
+        self.c.showPage()
+        # self.offset = 89
+        # self.write_dados_gerais()
+        # self.write_notificacao_individual()
+        # self.write_dados_residencia()
         self.c.save()
+        # go to the next page
 
-        # base = PdfReader(open("notificacao.pdf", "rb")).pages[0]
-        # overlay = PdfReader(open("overlay.pdf", "rb")).pages[0]
-        # base.merge_page(overlay)
+        base_pdf = PdfReader(open("base.pdf", "rb"))
+        base = base_pdf.pages[0]
+        overlay = PdfReader(open(self.save_path, "rb")).pages[0]
+        base.merge_page(overlay)
 
-        # output_pdf = PdfWriter()
-        # output_pdf.add_page(base)
-        # # output_pdf.add_page(overlay)
+        output_pdf = PdfWriter()
+        output_pdf.add_page(base)
+        output_pdf.add_page(base_pdf.pages[1])
 
-        # # Write the merged PDF to a new file
-        # with open("merge.pdf", "wb") as output_file:
-        #     output_pdf.write(output_file)
+        # Write the merged PDF to a new file
+        with open(self.save_path, "wb") as output_file:
+            output_pdf.write(output_file)
+
+        return self.save_path
 
 
 if __name__ == "__main__":
