@@ -62,12 +62,6 @@
     <script>
       const text = document.getElementById("text");
 
-      async function downloadPDF(url) {
-        const response = await fetch(url);
-        const blob = await response.blob();
-        return blob;
-      }
-
       async function main() {
         let pyodide = await loadPyodide();
           
@@ -82,8 +76,6 @@
 
         notif = pyodide.pyimport("notif.parser");
         notif = pyodide.pyimport("notif.writter");
-
-        const pdfBlob = await downloadPDF("http://jas.ieremies.dev/base.pdf");
 
         pyodide.runPythonAsync(`
           import pyodide.http
