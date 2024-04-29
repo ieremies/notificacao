@@ -68,7 +68,6 @@
         return blob;
       }
 
-      
       async function main() {
         let pyodide = await loadPyodide();
           
@@ -88,7 +87,7 @@
 
         pyodide.runPythonAsync(`
           import pyodide.http
-          response = await pyodide.http.pyfetch("http://jas.ieremies.dev/base.pdf")
+          response = await pyodide.http.pyfetch("https://jas.ieremies.dev/base.pdf")
           b = await response.bytes()
           with open("base.pdf", "wb") as f:
             f.write(b)
